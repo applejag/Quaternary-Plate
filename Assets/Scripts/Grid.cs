@@ -6,14 +6,15 @@ using ExtensionMethods;
 public class Grid : SingletonBaseScript<Grid> {
 
 	public float cellSize = 1;
-	public int gridSize = 5;
+	public int gridRadius = 3;
+	public int gridSize { get { return gridRadius * 2 + 1; } }
 
 	public List<Square> grid;
 
 #if UNITY_EDITOR
 	void OnValidate() {
 		cellSize = Mathf.Max(cellSize, 0);
-		gridSize = Mathf.Max(gridSize, 0);
+		gridRadius = Mathf.Max(gridRadius, 0);
 	}
 
 	void OnDrawGizmos() {
@@ -28,15 +29,43 @@ public class Grid : SingletonBaseScript<Grid> {
 		ResetGrid();
 	}
 
-	public Square GetObjectAt(Vector2 worldPos) {
+	public Square GetSquareAt(Vector2 worldPos) {
 		Vector2 pos = worldPos - transform.position.ToVector2() + Vector2.one * gridSize * cellSize / 2;
-		return GetObjectAt(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y));
+		return GetSquareAt(Mathf.FloorToInt(pos.x), Mathf.FloorToInt(pos.y));
 	}
 
-	public Square GetObjectAt(int x, int y) {
+	public Square GetSquareAt(int x, int y) {
 		return grid.Find(delegate (Square obj) {
 			return obj.x == x && obj.y == y;
 		});
+	}
+
+	public Square GetCenterSquare() {
+		return GetSquareAt(gridSize / 2, gridSize / 2);
+	}
+
+	public List<Square> GetSurroundingSquares(Square square) {
+		List<Square> list = new List<Square>();
+
+		list.Add(GetSquareAt(square.x, square.y-1));
+		list.Add(GetSquareAt(square.x, square.y+1));
+		list.Add(GetSquareAt(square.x-1, square.y));
+		list.Add(GetSquareAt(square.x+1, square.y));
+
+		// Trim
+		list.RemoveAll(delegate (Square s) { return s == null; });
+
+		return list;
+	}
+
+	public List<BuildingBlock> GetSurroundingBlocks(Square square) {
+		List<BuildingBlock> list = new List<BuildingBlock>();
+
+		foreach (Square s in GetSurroundingSquares(square)) {
+			if (s.block != null) list.Add(s.block);
+		}
+
+		return list;
 	}
 
 	public void ResetGrid() {

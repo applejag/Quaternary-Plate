@@ -20,7 +20,7 @@ public class GridRaycast : SingletonBaseScript<GridRaycast> {
 		if (Input.mousePresent) {
 
 			Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			Square square = grid.GetObjectAt(pos.ToVector2());
+			Square square = grid.GetSquareAt(pos.ToVector2());
 
 			if (square != hover) {
 				// Just hovered over a new one
@@ -36,8 +36,8 @@ public class GridRaycast : SingletonBaseScript<GridRaycast> {
 				} else if (hover == down && Input.GetMouseButtonUp(0)) {
 					// Clicked it
 					print("clicked " + down.name);
-					if (!square.occupied)
-						MenuController.instance.PlaceOnGrid(down);
+					//if (!square.occupied)
+					//	MenuController.instance.PlaceOnGrid(down);
 				}
             }
 

@@ -7,8 +7,9 @@ public class MenuItem : MonoBehaviour {
 	public Image image;
 	public GameObject prefab;
 
-	public void OnClick() {
-		MenuController.instance.Select(this);
+	public void OnPointerDown() {
+		if (Input.GetMouseButtonDown(0))
+			MenuController.instance.Select(this);
 	}
 
 }

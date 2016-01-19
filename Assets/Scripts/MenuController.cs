@@ -4,39 +4,106 @@ using System.Collections;
 
 public class MenuController : SingletonBaseScript<MenuController> {
 
-	public Image selectedImage;
-	public MenuItem selectedItem;
+	public GameObject startingPiece;
+
+	[HideInInspector]
+	public BuildingBlock previewItem;
+	private MenuItem selectedItem;
+
+	public bool holdingBlock { get { return previewItem != null; } }
+	public Vector3 mousePos { get {
+			Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			pos.z = transform.position.z;
+			return pos;
+		} }
 
 	void Start() {
 		Select(null);
+		PlaceOnGrid(Grid.instance.GetCenterSquare(), prefab:startingPiece, forcePlace:true);
 	}
 
 	void Update() {
-		if (selectedImage && Input.mousePresent) {
-			selectedImage.transform.position = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-			selectedImage.transform.localPosition = new Vector3(selectedImage.transform.localPosition.x, selectedImage.transform.localPosition.y);
+		if (selectedItem != null && Input.mousePresent) {
+			// Move the preview
+			previewItem.transform.position = mousePos;
+
+			// Drop it
+			if (Input.GetMouseButtonUp(0))
+				PlaceOnGrid(Grid.instance.GetSquareAt(mousePos));
 		}
+	}
+
+	void ClearSelection() {
+		selectedItem = null;
+		if (previewItem != null)
+			Destroy(previewItem.gameObject);
 	}
 
 	public void Select(MenuItem item) {
+		if (selectedItem != null) ClearSelection();
+
 		if (item == selectedItem || item == null) {
 			// Deselect
-			selectedItem = null;
-			selectedImage.color = Color.clear;
-		} else {
+			ClearSelection();
+		} else if (item != null) {
 			// Select
-			selectedImage.sprite = item.image != null ? item.image.sprite : null;
-			selectedImage.color = item.image != null ? item.image.color : Color.green;
 			selectedItem = item;
+
+			// Create
+			if (item.prefab != null) {
+				previewItem = CreateBuildingBlock(item.prefab);
+
+				if (previewItem == null) {
+					Debug.LogError("Please have a buildingblock component attached, it's kinda required.");
+				}
+			} else {
+				Debug.LogError("Please assign a prefab for the menuitem \"" + item.name + "\"!");
+			}
 		}
 	}
 
-	public void PlaceOnGrid(Square square) {
-		if (selectedItem) {
-			GameObject clone = Instantiate(selectedItem.prefab, square.transform.position, selectedItem.transform.rotation) as GameObject;
-			clone.transform.SetParent(square.transform);
-			square.item = clone.GetComponent<BuildingBlock>();
+	BuildingBlock CreateBuildingBlock(GameObject prefab) {
+		GameObject clone = Instantiate(prefab, mousePos, prefab.transform.rotation) as GameObject;
+		clone.transform.SetParent(transform);
+		return clone.GetComponent<BuildingBlock>();
+	}
+
+	/// <summary>
+	/// Create a block from the given prefab and place it on the grid.
+	/// </summary>
+	void PlaceOnGrid(Square square, GameObject prefab, bool forcePlace = false) {
+		if (square != null && prefab != null) {
+			PlaceOnGrid(square, CreateBuildingBlock(prefab), forcePlace);
+		}
+	}
+
+	/// <summary>
+	/// Place the currently selected block on the grid.
+	/// </summary>
+	void PlaceOnGrid(Square square, bool forcePlace = false) {
+		if (selectedItem != null && square != null) {
+			PlaceOnGrid(square, previewItem, forcePlace);
+			previewItem = null;
+
 			Select(null);
+		}
+	}
+
+	/// <summary>
+	/// Place the given block on the grid.
+	/// If forcePlace is true, it will place it on the square, even if the square doesn't allow it.
+	/// </summary>
+	void PlaceOnGrid(Square square, BuildingBlock block, bool forcePlace = false) {
+		// This is where all PlaceOnGrid methods ends up, this is the final check
+		if (square != null && block != null) {
+			if (forcePlace || square.CanTake(block)) {
+				block.transform.SetParent(square.transform);
+				block.transform.localPosition = Vector3.zero;
+				square.block = block;
+			} else {
+				// Can't take it; don't need it.
+				Destroy(block.gameObject);
+			}
 		}
 	}
 }

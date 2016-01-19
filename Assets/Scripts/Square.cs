@@ -23,8 +23,8 @@ public class Square : MonoBehaviour {
 					Gizmos.color = Color.yellow;
 			} else if (MenuController.instance.hover == this)
 				Gizmos.color = Color.red;
-		} else if (MenuController.instance.hover == this && occupied && !block.isCore) {
-			Gizmos.color = Color.cyan;
+		} else if (MenuController.instance.hover == this && occupied) {
+			Gizmos.color = block.isCore ? Color.white : Color.cyan;
 		}
 		
 		Gizmos.DrawWireCube(transform.position, new Vector3(cellSize, cellSize));
@@ -41,9 +41,11 @@ public class Square : MonoBehaviour {
 	}
 
 	public void ClearBlock() {
-		Destroy(block.gameObject);
-		block = null;
-		Grid.instance.SendBlockUpdate(this);
+		if (block != null) {
+			Destroy(block.gameObject);
+			block = null;
+			Grid.instance.SendBlockUpdate(this);
+		}
 	}
 
 	// Called by the gridraycast

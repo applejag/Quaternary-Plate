@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class Square : MonoBehaviour {
 
@@ -16,12 +17,14 @@ public class Square : MonoBehaviour {
 
 		if (MenuController.instance.holdingBlock) {
 			if (CanTake(MenuController.instance.previewItem)) {
-				if (GridRaycast.instance.hover == this)
+				if (MenuController.instance.hover == this)
 					Gizmos.color = Color.green;
 				else
 					Gizmos.color = Color.yellow;
-			} else if (GridRaycast.instance.hover == this)
+			} else if (MenuController.instance.hover == this)
 				Gizmos.color = Color.red;
+		} else if (MenuController.instance.hover == this && occupied && !block.isCore) {
+			Gizmos.color = Color.cyan;
 		}
 		
 		Gizmos.DrawWireCube(transform.position, new Vector3(cellSize, cellSize));
@@ -33,7 +36,26 @@ public class Square : MonoBehaviour {
 #endif
 
 	public bool CanTake(BuildingBlock block) {
-		return !occupied && Grid.instance.GetSurroundingBlocks(this).Count > 0;
+		// Check if this squares neightbor got any blocks
+		return !occupied && block.CanBePlacedAt(this);
+	}
+
+	public void ClearBlock() {
+		Destroy(block.gameObject);
+		block = null;
+		Grid.instance.SendBlockUpdate(this);
+	}
+
+	// Called by the gridraycast
+	public void OnLeftClick() {
+		if (block != null)
+			print("Connected to core: " + Grid.instance.ConnectedToCore(block));
+	}
+
+	// Called by the gridraycast
+	public void OnRightClick() {
+		if (block != null && !block.isCore)
+			ClearBlock();
 	}
 
 }

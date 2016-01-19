@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using ExtensionMethods;
 
 public class MenuController : SingletonBaseScript<MenuController> {
 
@@ -10,7 +11,14 @@ public class MenuController : SingletonBaseScript<MenuController> {
 	public BuildingBlock previewItem;
 	private MenuItem selectedItem;
 
+	private Square leftDown;
+	private Square rightDown;
+
+	[HideInInspector]
+	public Square hover;
+	
 	public bool holdingBlock { get { return previewItem != null; } }
+
 	public Vector3 mousePos { get {
 			Vector3 pos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 			pos.z = transform.position.z;
@@ -23,13 +31,67 @@ public class MenuController : SingletonBaseScript<MenuController> {
 	}
 
 	void Update() {
+		// MenuController
 		if (selectedItem != null && Input.mousePresent) {
 			// Move the preview
 			previewItem.transform.position = mousePos;
 
+			// Duplicate it
+			if (Input.GetMouseButtonDown(1)) {
+				PlaceOnGrid(Grid.instance.GetSquareAt(mousePos), selectedItem.prefab, false);
+			}
+
 			// Drop it
-			if (Input.GetMouseButtonUp(0))
-				PlaceOnGrid(Grid.instance.GetSquareAt(mousePos));
+			if (Input.GetMouseButtonUp(0)) {
+                PlaceOnGrid(Grid.instance.GetSquareAt(mousePos));
+				Select(null);
+			}
+		}
+
+		// GridRaycast
+		if (Input.mousePresent) {
+			
+			Square square = Grid.instance.GetSquareAt(mousePos.ToVector2());
+
+			if (square != hover) {
+				// Just hovered over a new one
+				hover = square;
+			} else if (square == null) {
+				// Mouse left the current one
+				hover = null;
+			}
+
+			if (hover != null && !holdingBlock) {
+				// Left clicking
+				if (Input.GetMouseButtonDown(0)) {
+					leftDown = hover;
+				} else if (hover == leftDown && Input.GetMouseButtonUp(0)) {
+					// Clicked it
+					//print("leftclicked " + leftDown.name);
+					leftDown.OnLeftClick();
+				}
+
+				// Right clicking
+				if (Input.GetMouseButtonDown(1)) {
+					rightDown = hover;
+				} else if (hover == rightDown && Input.GetMouseButtonUp(1)) {
+					// Clicked it
+					//print("rightclicked " + rightDown.name);
+					rightDown.OnRightClick();
+				}
+			}
+
+		} else {
+			// Mouse left the current one
+			hover = null;
+		}
+
+		// Failsafe
+		if (!Input.GetMouseButton(0)) {
+			leftDown = null;
+		}
+		if (!Input.GetMouseButton(1)) {
+			rightDown = null;
 		}
 	}
 
@@ -84,8 +146,6 @@ public class MenuController : SingletonBaseScript<MenuController> {
 		if (selectedItem != null && square != null) {
 			PlaceOnGrid(square, previewItem, forcePlace);
 			previewItem = null;
-
-			Select(null);
 		}
 	}
 
@@ -100,6 +160,9 @@ public class MenuController : SingletonBaseScript<MenuController> {
 				block.transform.SetParent(square.transform);
 				block.transform.localPosition = Vector3.zero;
 				square.block = block;
+
+				block.OnPlace(square);
+				Grid.instance.SendBlockUpdate(square);
 			} else {
 				// Can't take it; don't need it.
 				Destroy(block.gameObject);

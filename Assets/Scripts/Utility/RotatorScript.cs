@@ -13,10 +13,7 @@ public class RotatorScript : MonoBehaviour {
 	void Update() {
 		switch (moveVia) {
 			case MoveVia.transform:
-				if (relativeTo == Space.Self)
-					transform.localEulerAngles += eulerMotion * Time.deltaTime;
-				if (relativeTo == Space.World)
-					transform.eulerAngles += eulerMotion * Time.deltaTime;
+				transform.Rotate(eulerMotion * Time.deltaTime, relativeTo);
 				break;
 
 			case MoveVia.rigidbody:

@@ -92,4 +92,36 @@ public class Grid : SingletonBaseScript<Grid> {
 		}
 	}
 
+	public void SendBlockUpdate(Square from) {
+		if (from.block != null)
+			from.block.BlockUpdate();
+
+		foreach(BuildingBlock block in GetSurroundingBlocks(from)) {
+			block.BlockUpdate();
+		}
+	}
+
+	// Search algorithm
+	public bool ConnectedToCore(BuildingBlock block) {
+		return ConnectedToCore(block, new List<BuildingBlock>());
+	}
+
+	public bool ConnectedToCore(BuildingBlock block, List<BuildingBlock> searched) {
+		if (block.isCore)
+			return true;
+
+		searched.Add(block);
+
+		foreach(BuildingBlock b in GetSurroundingBlocks(block.square)) {
+			if (searched.Contains(b))
+				continue;
+
+			searched.Add(b);
+			if (ConnectedToCore(b, searched))
+				return true;
+		}
+
+		return false;
+	}
+
 }
